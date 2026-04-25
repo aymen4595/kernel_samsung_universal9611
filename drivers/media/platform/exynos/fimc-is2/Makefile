@@ -1,3 +1,6 @@
+ccflags-y += -Wno-error -w
+subdir-ccflags-y += -Wno-error -w
+
 fimc-is-objs	:= fimc-is-core.o \
 		fimc-is-spi.o \
 		fimc-is-debug.o \
