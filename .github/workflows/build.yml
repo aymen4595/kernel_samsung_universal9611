@@ -1,0 +1,23 @@
+name: Build Kernel A51
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Toolchain
+        run: |
+          sudo apt update
+          sudo apt install -y bc bison flex libssl-dev libelf-dev gcc-aarch64-linux-gnu
+      - name: Compile Kernel
+        run: |
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          make vendor/a51_defconfig
+          make -j$(nproc)
+      - name: Upload Boot Image
+        uses: actions/upload-artifact@v3
+        with:
+          name: boot-image
+          path: arch/arm64/boot/Image.gz-dtb
