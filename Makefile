@@ -444,7 +444,7 @@ LINUXINCLUDE	+= -I$(srctree)/drivers/android/kernelsu/include
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -pipe \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
-		   -Wno-error-implicit-function-declaration \
+		   -Wno-implicit-function-declaration \
 		   -Wno-format-security \
 		   -Wno-error \
 		   -std=gnu89
