@@ -1,3 +1,6 @@
+subdir-ccflags-y += -Wno-error
+ccflags-y += -Wno-error
+
 # SPDX-License-Identifier: GPL-2.0
 #
 # Makefile for the kernel multimedia device drivers.
