@@ -5,7 +5,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Toolchain
         run: |
           sudo apt update
@@ -17,7 +17,7 @@ jobs:
           make vendor/a51_defconfig
           make -j$(nproc)
       - name: Upload Boot Image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: boot-image
           path: arch/arm64/boot/Image.gz-dtb
