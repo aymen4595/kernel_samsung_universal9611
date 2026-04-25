@@ -508,7 +508,7 @@ ifneq ($(KBUILD_SRC),)
 endif
 
 ifneq ($(ONEUI),)
-KBUILD_CFLAGS += -DGRASS_ONEUI
+KBUILD_CFLAGS += -DGRASS_UNIFIED -Wno-error=format -Wno-error=format-extra-args
 endif
 export ONEUI
 
