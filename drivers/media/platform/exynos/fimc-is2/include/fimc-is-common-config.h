@@ -475,7 +475,7 @@ extern int debug_sensor;
 
 #if defined(DEBUG_LOG_MEMORY)
 #define fimc_is_err(fmt, ...)	printk(KERN_DEBUG fmt, ##__VA_ARGS__)
-#define fimc_is_warn(fmt, ...) do { } while (0)
+#define fimc_is_warn(fmt, args...) do { } while (0)
 #define fimc_is_dbg(fmt, ...)	printk(KERN_DEBUG fmt, ##__VA_ARGS__)
 #define fimc_is_info(fmt, ...)	printk(KERN_DEBUG fmt, ##__VA_ARGS__)
 #define fimc_is_cont(fmt, ...)	printk(KERN_DEBUG fmt, ##__VA_ARGS__)
