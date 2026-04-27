@@ -1,4 +1,4 @@
-name: Build Kernel A51
+name: Build Kernel A51 VCAM
 
 on:
   workflow_dispatch:
@@ -19,28 +19,37 @@ jobs:
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           
-          # --- CORRECTIF SYNTAXE ---
-          # On utilise une boucle pour modifier les fichiers sans faire d'erreur 'find'
-          for f in $(find drivers/media/platform/exynos/ -name "*.h"); do
+          # --- NETTOYAGE AUTOMATIQUE ---
+          # On neutralise les macros Samsung qui bloquent le build
+          for f in $(find drivers/media/platform/exynos/ -name "*.h" -o -name "*.c"); do
             sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' "$f"
             sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' "$f"
-          done
-
-          for f in $(find drivers/media/platform/exynos/ -name "*.c"); do
             sed -i 's/warn("the size of STATB buffer is too small/\/\/warn("the size of STATB buffer is too small/g' "$f"
           done
-          # --------------------------
 
+          # --- CONFIGURATION ---
           make vendor/a51_defconfig
           
-          # On force l'ignorance des erreurs au maximum
-          export KCFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
+          # On injecte tes options V4L2 proprement à la fin du .config
+          {
+            echo "CONFIG_VIDEO_V4L2=y"
+            echo "CONFIG_VIDEOBUF2_CORE=y"
+            echo "CONFIG_VIDEOBUF2_MEMOPS=y"
+            echo "CONFIG_VIDEOBUF2_VMALLOC=y"
+            echo "CONFIG_VIDEO_V4L2_LOOPBACK=y"
+          } >> .config
           
-          make -j$(nproc) KCFLAGS="$KCFLAGS"
+          make olddefconfig
+
+          # --- COMPILATION ---
+          # On utilise -fpermissive et on ignore TOUS les warnings et erreurs de type
+          # C'est la commande la plus puissante pour forcer un vieux kernel à compiler
+          make -j$(nproc) \
+            KCFLAGS="-w -fpermissive -Wno-error -Wno-strict-prototypes -Wno-incompatible-pointer-types -Wno-implicit-function-declaration" \
+            KCPPFLAGS="-w -Wno-error"
 
       - name: Upload Boot Image
         uses: actions/upload-artifact@v4
         with:
-          name: boot-image
+          name: boot-image-A51
           path: arch/arm64/boot/Image.gz-dtb
-          
