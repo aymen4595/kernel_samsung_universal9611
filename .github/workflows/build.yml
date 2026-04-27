@@ -1,0 +1,44 @@
+name: Build Kernel A51 Android 13
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm
+
+      - name: Download Proton Clang
+        run: |
+          git clone https://github.com toolchain --depth=1
+
+      - name: Compile Kernel
+        run: |
+          export PATH=$(pwd)/toolchain/bin:$PATH
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          export CC=clang
+          export AR=llvm-ar
+          export NM=llvm-nm
+          export OBJCOPY=llvm-objcopy
+          export OBJDUMP=llvm-objdump
+          export STRIP=llvm-strip
+
+          # On utilise la config pour Android 13
+          make vendor/a51_defconfig
+          
+          # Compilation avec Clang (beaucoup plus propre)
+          make -j$(nproc) CLANG_TRIPLE=aarch64-linux-gnu-
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-A51-Android13
+          path: arch/arm64/boot/Image.gz-dtb
