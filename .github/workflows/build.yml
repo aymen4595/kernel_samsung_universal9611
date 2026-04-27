@@ -14,9 +14,9 @@ jobs:
           sudo apt update
           sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm
 
-      - name: Download Proton Clang
+      - name: Download Toolchain
         run: |
-          git clone https://github.com toolchain --depth=1
+          git clone --depth=1 https://github.com toolchain
 
       - name: Compile Kernel
         run: |
@@ -31,10 +31,7 @@ jobs:
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
 
-          # On utilise la config pour Android 13
           make vendor/a51_defconfig
-          
-          # Compilation avec Clang (beaucoup plus propre)
           make -j$(nproc) CLANG_TRIPLE=aarch64-linux-gnu-
 
       - name: Upload Image
