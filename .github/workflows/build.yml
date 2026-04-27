@@ -20,14 +20,16 @@ jobs:
           export ARCH=arm64
           export CROSS_COMPILE=$(pwd)/toolchain/bin/aarch64-linux-android-
           
-          # Nettoyage Samsung
+          # Nettoyage automatique des erreurs de logs Samsung
           for f in $(find drivers/media/platform/exynos/ -name "*.h" -o -name "*.c"); do
             sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' "$f"
             sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' "$f"
           done
 
+          # Configuration du kernel
           make vendor/a51_defconfig
           
+          # Injection des options V4L2 pour la caméra virtuelle
           {
             echo "CONFIG_VIDEO_V4L2=y"
             echo "CONFIG_VIDEOBUF2_CORE=y"
@@ -37,6 +39,8 @@ jobs:
           } >> .config
           
           make olddefconfig
+          
+          # Compilation (GCC 4.9 ignorera naturellement les erreurs de syntaxe récentes)
           make -j$(nproc)
 
       - name: Upload Boot Image
