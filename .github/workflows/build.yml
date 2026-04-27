@@ -12,17 +12,20 @@ jobs:
       - name: Install Tools
         run: |
           sudo apt update
-          sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm
+          sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm wget
 
       - name: Download Toolchain
-        run: git clone --depth=1 "https://github.com" toolchain
+        run: |
+          # Téléchargement direct du compilateur (pas de git clone, pas d'erreur 128)
+          wget https://googlesource.com
+          mkdir toolchain
+          tar -xzf clang-r450784d.tar.gz -C toolchain
 
       - name: Compile Kernel
         run: |
           export PATH=$(pwd)/toolchain/bin:$PATH
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
-          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
           export CC=clang
           export AR=llvm-ar
           export NM=llvm-nm
@@ -30,7 +33,7 @@ jobs:
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
           
-          # Nettoyage automatique des erreurs Samsung
+          # Nettoyage Samsung
           find drivers/media/platform/exynos/ -type f \( -name "*.h" -o -name "*.c" \) -exec sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' {} +
           find drivers/media/platform/exynos/ -type f \( -name "*.h" -o -name "*.c" \) -exec sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' {} +
 
