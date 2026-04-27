@@ -14,32 +14,26 @@ jobs:
           sudo apt update
           sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm
 
-      # Cette étape remplace tout le téléchargement manuel
-      - name: Setup Clang
-        uses: egortarasov/get-clang-action@master
-        with:
-          version: 14
-
       - name: Compile Kernel
         run: |
+          # On utilise le Clang déjà présent sur le système GitHub
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           export CC=clang
-          export AR=llvm-ar
-          export NM=llvm-nm
-          export OBJCOPY=llvm-objcopy
-          export OBJDUMP=llvm-objdump
-          export STRIP=llvm-strip
+          export CLANG_TRIPLE=aarch64-linux-gnu-
           
-          # Nettoyage Samsung
+          # Nettoyage automatique des erreurs Samsung
           find drivers/media/platform/exynos/ -type f \( -name "*.h" -o -name "*.c" \) -exec sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' {} +
           find drivers/media/platform/exynos/ -type f \( -name "*.h" -o -name "*.c" \) -exec sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' {} +
 
+          # Configuration
           make vendor/a51_defconfig
-          make -j$(nproc) CLANG_TRIPLE=aarch64-linux-gnu-
+          
+          # On force la compilation avec le Clang du système
+          make -j$(nproc) CC=clang CLANG_TRIPLE=aarch64-linux-gnu-
 
       - name: Upload Image
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-A51-Final
+          name: kernel-A51
           path: arch/arm64/boot/Image.gz-dtb
