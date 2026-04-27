@@ -21,12 +21,16 @@ jobs:
           export CC=clang
           export CLANG_TRIPLE=aarch64-linux-gnu-
           
-          # Nettoyage Samsung avec une boucle sûre
+          # 1. Nettoyage Samsung
           for f in $(find drivers/media/platform/exynos/ -type f \( -name "*.h" -o -name "*.c" \)); do
             sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' "$f"
             sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' "$f"
           done
 
+          # 2. FIX KernelSU : On commente la ligne qui fait planter le build
+          sed -i 's/source "drivers\/android\/kernelsu\/Kconfig"/# /g' drivers/android/Kconfig
+
+          # 3. Configuration et Build
           make vendor/a51_defconfig
           make -j$(nproc) CC=clang CLANG_TRIPLE=aarch64-linux-gnu-
 
