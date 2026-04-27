@@ -12,18 +12,16 @@ jobs:
       - name: Install Tools
         run: |
           sudo apt update
-          sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm wget
+          sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm
 
-      - name: Download Toolchain
-        run: |
-          # Téléchargement direct du compilateur (pas de git clone, pas d'erreur 128)
-          wget https://googlesource.com
-          mkdir toolchain
-          tar -xzf clang-r450784d.tar.gz -C toolchain
+      # Cette étape remplace tout le téléchargement manuel
+      - name: Setup Clang
+        uses: egortarasov/get-clang-action@master
+        with:
+          version: 14
 
       - name: Compile Kernel
         run: |
-          export PATH=$(pwd)/toolchain/bin:$PATH
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           export CC=clang
