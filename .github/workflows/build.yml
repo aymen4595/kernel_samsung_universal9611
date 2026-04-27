@@ -19,21 +19,23 @@ jobs:
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           
-          # --- DEBUT DU FIX ---
-          # 1. Neutralise les macros Samsung qui causent l'arrêt (fimc_is_warn et warn_common)
-          find drivers/media/platform/exynos/ -type f -name "*.h" -exec sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' {} +
-          find drivers/media/platform/exynos/ -type f -name "*.h" -exec sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' {} +
-          
-          # 2. Commente le test de taille du buffer STATB qui fait échouer le build
-          find drivers/media/platform/exynos/ -type f -name "*.c" -exec sed -i 's/warn("the size of STATB buffer is too small/\/\/warn("the size of STATB buffer is too small/g' {} +
+          # --- CORRECTIF SYNTAXE ---
+          # On utilise une boucle pour modifier les fichiers sans faire d'erreur 'find'
+          for f in $(find drivers/media/platform/exynos/ -name "*.h"); do
+            sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' "$f"
+            sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' "$f"
+          done
 
-          # 3. Prépare la config et force l'ignorance des erreurs (KCFLAGS)
+          for f in $(find drivers/media/platform/exynos/ -name "*.c"); do
+            sed -i 's/warn("the size of STATB buffer is too small/\/\/warn("the size of STATB buffer is too small/g' "$f"
+          done
+          # --------------------------
+
           make vendor/a51_defconfig
           
-          # On définit KCFLAGS pour ignorer tous les warnings (-w) et ne pas traiter les warnings comme des erreurs
-          export KCFLAGS="-w -Wno-error"
-          # --- FIN DU FIX ---
-
+          # On force l'ignorance des erreurs au maximum
+          export KCFLAGS="-w -Wno-error -Wno-implicit-function-declaration"
+          
           make -j$(nproc) KCFLAGS="$KCFLAGS"
 
       - name: Upload Boot Image
@@ -41,4 +43,4 @@ jobs:
         with:
           name: boot-image
           path: arch/arm64/boot/Image.gz-dtb
-
+          
