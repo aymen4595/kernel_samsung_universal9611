@@ -13,7 +13,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y bc bison flex libssl-dev libelf-dev
-          git clone https://googlesource.com toolchain --depth=1
+          git clone https://github.com toolchain --depth=1
 
       - name: Compile Kernel
         run: |
