@@ -21,28 +21,32 @@ jobs:
           export CC=clang
           export CLANG_TRIPLE=aarch64-linux-gnu-
           
-          # 1. Nettoyage Samsung
+          # 1. Nettoyage des macros Samsung (indispensable)
           for f in $(find drivers/media/platform/exynos/ -type f \( -name "*.h" -o -name "*.c" \)); do
             sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' "$f"
             sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' "$f"
           done
 
-          # 2. FIX KernelSU et Sécurité Stack
+          # 2. Fix KernelSU
           sed -i 's/source "drivers\/android\/kernelsu\/Kconfig"/# /g' drivers/android/Kconfig
           
           make vendor/a51_defconfig
           
-          # On désactive l'option qui fait planter le check du compilateur
+          # 3. FIX DU CRASH à 9min : On désactive les drivers RC (Remote Control) qui font planter le build
+          scripts/config --disable CONFIG_RC_CORE
           scripts/config --disable CONFIG_CC_STACKPROTECTOR_STRONG
+          
+          # 4. Préparation pour ta future VCam
+          scripts/config --enable CONFIG_VIDEO_V4L2
+          scripts/config --enable CONFIG_VIDEOBUF2_VMALLOC
+          
+          make olddefconfig
 
-          # 3. Build avec forçage des outils LLVM
-          make -j$(nproc) \
-            CC=clang \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-gnu- \
-            LD=ld.lld \
-            AR=llvm-ar \
-            NM=llvm-nm \
-            OBJCOPY=llvm-objcopy \
-            OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip
+          # 5. Build final
+          make -j$(nproc) CC=clang CLANG_TRIPLE=aarch64-linux-gnu- LD=ld.lld
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-A51
+          path: arch/arm64/boot/Image.gz-dtb
