@@ -1,4 +1,4 @@
-name: Build Kernel A51 VCAM
+name: Build Kernel A51 GCC49
 
 on:
   workflow_dispatch:
@@ -12,25 +12,22 @@ jobs:
       - name: Install Toolchain
         run: |
           sudo apt update
-          sudo apt install -y bc bison flex libssl-dev libelf-dev gcc-aarch64-linux-gnu
+          sudo apt install -y bc bison flex libssl-dev libelf-dev
+          git clone https://googlesource.com toolchain --depth=1
 
       - name: Compile Kernel
         run: |
           export ARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE=$(pwd)/toolchain/bin/aarch64-linux-android-
           
-          # --- NETTOYAGE AUTOMATIQUE ---
-          # On neutralise les macros Samsung qui bloquent le build
+          # Nettoyage Samsung
           for f in $(find drivers/media/platform/exynos/ -name "*.h" -o -name "*.c"); do
             sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' "$f"
             sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' "$f"
-            sed -i 's/warn("the size of STATB buffer is too small/\/\/warn("the size of STATB buffer is too small/g' "$f"
           done
 
-          # --- CONFIGURATION ---
           make vendor/a51_defconfig
           
-          # On injecte tes options V4L2 proprement à la fin du .config
           {
             echo "CONFIG_VIDEO_V4L2=y"
             echo "CONFIG_VIDEOBUF2_CORE=y"
@@ -40,16 +37,10 @@ jobs:
           } >> .config
           
           make olddefconfig
-
-          # --- COMPILATION ---
-          # On utilise -fpermissive et on ignore TOUS les warnings et erreurs de type
-          # C'est la commande la plus puissante pour forcer un vieux kernel à compiler
-          make -j$(nproc) \
-            KCFLAGS="-w -fpermissive -Wno-error -Wno-strict-prototypes -Wno-incompatible-pointer-types -Wno-implicit-function-declaration" \
-            KCPPFLAGS="-w -Wno-error"
+          make -j$(nproc)
 
       - name: Upload Boot Image
         uses: actions/upload-artifact@v4
         with:
-          name: boot-image-A51
+          name: boot-image-gcc49
           path: arch/arm64/boot/Image.gz-dtb
