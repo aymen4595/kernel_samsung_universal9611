@@ -12,7 +12,7 @@ jobs:
       - name: Install Tools
         run: |
           sudo apt update
-          sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm
+          sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
 
       - name: Compile Kernel
         run: |
@@ -27,15 +27,22 @@ jobs:
             sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' "$f"
           done
 
-          # 2. FIX KernelSU : On commente la ligne qui fait planter le build
+          # 2. FIX KernelSU et Sécurité Stack
           sed -i 's/source "drivers\/android\/kernelsu\/Kconfig"/# /g' drivers/android/Kconfig
-
-          # 3. Configuration et Build
+          
           make vendor/a51_defconfig
-          make -j$(nproc) CC=clang CLANG_TRIPLE=aarch64-linux-gnu-
+          
+          # On désactive l'option qui fait planter le check du compilateur
+          scripts/config --disable CONFIG_CC_STACKPROTECTOR_STRONG
 
-      - name: Upload Image
-        uses: actions/upload-artifact@v4
-        with:
-          name: kernel-A51
-          path: arch/arm64/boot/Image.gz-dtb
+          # 3. Build avec forçage des outils LLVM
+          make -j$(nproc) \
+            CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            LD=ld.lld \
+            AR=llvm-ar \
+            NM=llvm-nm \
+            OBJCOPY=llvm-objcopy \
+            OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip
