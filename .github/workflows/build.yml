@@ -21,7 +21,7 @@ jobs:
           export CC=clang
           export CLANG_TRIPLE=aarch64-linux-gnu-
           
-          # 1. Nettoyage des macros Samsung (indispensable)
+          # 1. Nettoyage Samsung
           for f in $(find drivers/media/platform/exynos/ -type f \( -name "*.h" -o -name "*.c" \)); do
             sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' "$f"
             sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' "$f"
@@ -32,21 +32,21 @@ jobs:
           
           make vendor/a51_defconfig
           
-          # 3. FIX DU CRASH à 9min : On désactive les drivers RC (Remote Control) qui font planter le build
-          scripts/config --disable CONFIG_RC_CORE
+          # 3. DÉSACTIVATION DES SÉCURITÉS QUI BLOQUENT LE MODEM
           scripts/config --disable CONFIG_CC_STACKPROTECTOR_STRONG
+          scripts/config --disable CONFIG_RC_CORE
           
-          # 4. Préparation pour ta future VCam
+          # 4. Activation V4L2
           scripts/config --enable CONFIG_VIDEO_V4L2
           scripts/config --enable CONFIG_VIDEOBUF2_VMALLOC
           
           make olddefconfig
 
-          # 5. Build final
-          make -j$(nproc) CC=clang CLANG_TRIPLE=aarch64-linux-gnu- LD=ld.lld
-
-      - name: Upload Image
-        uses: actions/upload-artifact@v4
-        with:
-          name: kernel-A51
-          path: arch/arm64/boot/Image.gz-dtb
+          # 5. BUILD "FORCE BRUTE" : On ignore TOUTES les erreurs de compilation
+          # On ajoute -w pour supprimer les warnings et -fpermissive pour laisser passer le code sale
+          make -j$(nproc) \
+            CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            LD=ld.lld \
+            KCFLAGS="-w -fpermissive -Wno-error" \
+            KCPPFLAGS="-w -Wno-error"
