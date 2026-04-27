@@ -1,4 +1,4 @@
-name: Build Kernel A51 Android 13
+name: Build Kernel A51 Pro
 
 on:
   workflow_dispatch:
@@ -9,14 +9,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Install Tools
         run: |
           sudo apt update
           sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm
 
       - name: Download Toolchain
-        run: |
-          git clone --depth=1 https://github.com toolchain
+        run: git clone --depth=1 "https://github.com" toolchain
 
       - name: Compile Kernel
         run: |
@@ -30,6 +29,10 @@ jobs:
           export OBJCOPY=llvm-objcopy
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
+          
+          # Nettoyage automatique des erreurs Samsung
+          find drivers/media/platform/exynos/ -type f \( -name "*.h" -o -name "*.c" \) -exec sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' {} +
+          find drivers/media/platform/exynos/ -type f \( -name "*.h" -o -name "*.c" \) -exec sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' {} +
 
           make vendor/a51_defconfig
           make -j$(nproc) CLANG_TRIPLE=aarch64-linux-gnu-
@@ -37,5 +40,5 @@ jobs:
       - name: Upload Image
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-A51-Android13
+          name: kernel-A51-Final
           path: arch/arm64/boot/Image.gz-dtb
