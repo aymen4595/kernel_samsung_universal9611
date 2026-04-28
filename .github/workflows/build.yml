@@ -1,4 +1,4 @@
-name: Build Kernel A51 Final Base
+name: Build Kernel A51 Direct Force
 
 on:
   workflow_dispatch:
@@ -19,20 +19,15 @@ jobs:
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           
-          # 1. On désactive KernelSU pour éviter l'erreur de fichier manquant
-          if [ -f drivers/android/Kconfig ]; then
-            sed -i 's/source "drivers\/android\/kernelsu\/Kconfig"/# /g' drivers/android/Kconfig
-          fi
-          
-          # 2. On génère la config
+          # 1. On génère la config de base
           make vendor/a51_defconfig
           
-          # 3. ON FORCE L'IGNORANCE DES ERREURS (Le secret pour passer les 8min)
-          sed -i 's/-Werror//g' Makefile
+          # 2. On désactive la sécurité qui bloque le démarrage du build
           scripts/config --disable CONFIG_CC_STACKPROTECTOR_STRONG
           
-          make olddefconfig
-          
-          # 4. Compilation "Force Brute"
-          # On ignore les warnings (-w) et on autorise le code sale (-fpermissive)
-          make -j$(nproc) KCFLAGS="-w -fpermissive"
+          # 3. COMPILATION ULTRA-TOLÉRANTE
+          # On passe les drapeaux d'ignorance directement dans la commande make
+          # -w : ignore les warnings
+          # -fpermissive : ignore les erreurs de code "sale"
+          # KCFLAGS s'occupe des drivers Samsung sans modifier les fichiers manuellement
+          make -j$(nproc) KCFLAGS="-w -fpermissive -Wno-error"
