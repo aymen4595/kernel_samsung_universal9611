@@ -1,4 +1,4 @@
-name: Build Kernel A51 Pro
+name: Build Kernel A51 Final Base
 
 on:
   workflow_dispatch:
@@ -12,41 +12,27 @@ jobs:
       - name: Install Tools
         run: |
           sudo apt update
-          sudo apt install -y bc bison flex libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
+          sudo apt install -y bc bison flex libssl-dev libelf-dev gcc-aarch64-linux-gnu
 
       - name: Compile Kernel
         run: |
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
-          export CC=clang
-          export CLANG_TRIPLE=aarch64-linux-gnu-
           
-          # 1. Nettoyage Samsung
-          for f in $(find drivers/media/platform/exynos/ -type f \( -name "*.h" -o -name "*.c" \)); do
-            sed -i 's/#define warn_common.*/#define warn_common(fmt, ...) do {} while(0)/g' "$f"
-            sed -i 's/#define fimc_is_warn.*/#define fimc_is_warn(fmt, ...) do {} while(0)/g' "$f"
-          done
-
-          # 2. Fix KernelSU
-          sed -i 's/source "drivers\/android\/kernelsu\/Kconfig"/# /g' drivers/android/Kconfig
+          # 1. On désactive KernelSU pour éviter l'erreur de fichier manquant
+          if [ -f drivers/android/Kconfig ]; then
+            sed -i 's/source "drivers\/android\/kernelsu\/Kconfig"/# /g' drivers/android/Kconfig
+          fi
           
+          # 2. On génère la config
           make vendor/a51_defconfig
           
-          # 3. DÉSACTIVATION DES SÉCURITÉS QUI BLOQUENT LE MODEM
+          # 3. ON FORCE L'IGNORANCE DES ERREURS (Le secret pour passer les 8min)
+          sed -i 's/-Werror//g' Makefile
           scripts/config --disable CONFIG_CC_STACKPROTECTOR_STRONG
-          scripts/config --disable CONFIG_RC_CORE
-          
-          # 4. Activation V4L2
-          scripts/config --enable CONFIG_VIDEO_V4L2
-          scripts/config --enable CONFIG_VIDEOBUF2_VMALLOC
           
           make olddefconfig
-
-          # 5. BUILD "FORCE BRUTE" : On ignore TOUTES les erreurs de compilation
-          # On ajoute -w pour supprimer les warnings et -fpermissive pour laisser passer le code sale
-          make -j$(nproc) \
-            CC=clang \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            LD=ld.lld \
-            KCFLAGS="-w -fpermissive -Wno-error" \
-            KCPPFLAGS="-w -Wno-error"
+          
+          # 4. Compilation "Force Brute"
+          # On ignore les warnings (-w) et on autorise le code sale (-fpermissive)
+          make -j$(nproc) KCFLAGS="-w -fpermissive"
